@@ -22,6 +22,12 @@
 	(taker (+ i 1) (cons (car lst) out) (cdr lst))))
   (taker 0 (list) lst))
 
+(define (slice start end step lst)
+  (let ([list-size (length lst)])
+   (let loop ([i start] [out (list)])
+     (cond ((or (> i end) (>= i list-size)) (reverse out))
+	   (else (loop (+ i step) (cons (list-ref lst i) out)))))))
+
 (define (first lst) (car lst))
 (define (second lst) (cadr lst))
 (define (third lst) (caddr lst))

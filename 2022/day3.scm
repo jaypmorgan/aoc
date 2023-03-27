@@ -77,7 +77,7 @@
 ;; get the second compartment for a given sack (i.e. the right
 ;; half of the sack string)
 (define (second-compartment sack)
-  (take (/ (length sack) 2) (reverse sack)))
+  (reverse (take (/ (length sack) 2) (reverse sack))))
 
 ;; given a sack, return a list of the two compartments split.
 (define (split-compartments sack)
@@ -107,7 +107,7 @@
 	  [else (loop (rest it-lst) (cons (first it-lst) els))])))
 
 ;; union. Find the common elements between two sets.
-(define (union lst1 lst2)
+(define (intersection lst1 lst2)
   (define (f lst1 lst2)
     (cond ((or (null? lst1) (null? lst2)) (list))
 	  ((member (car lst1) lst2) (cons (car lst1) (f (cdr lst1) lst2)))
@@ -116,9 +116,9 @@
 
 ;; find the common element between two compartments of a sack
 (define (find-common-element sack)
-  (first
-   (union (unique (first sack))
-	  (unique (second sack)))))
+   (first
+    (intersection (unique (first sack))
+		  (unique (second sack)))))
 
 ;; find the common elements in many sacks
 (define (find-common-elements sacks)
@@ -200,9 +200,16 @@
 
 (define (find-common-element sacks)
   (let ([sacks (map merge-compartments sacks)])
-    (union (unique (third sacks))
-	   (unique (append (first sacks) (second sacks))))))
+    (first
+     (intersection (intersection (unique (third sacks)) (unique (second sacks)))
+		   (unique (first sacks))))))
+
+(define (find-common-elements sacks)
+  (let loop ([sacks sacks] [cels (list)])
+    (cond ((null? sacks) cels)
+	  (else (loop (slice 3 (length sacks) 1 sacks)
+		      (cons (find-common-element (take 3 sacks)) cels))))))
 
 (sum-of-priorities
  (find-common-elements
-  (read-rucksack-file "data/day3.test.txt")))
+  (read-rucksack-file "data/day3.input.txt")))

@@ -85,7 +85,8 @@
 
 (library (aoc day-five (1))
   (export run)
-  (import (rnrs))
+  (import (rnrs (6))
+          (rnrs exceptions))
 
   (define make-stack
     (lambda args
@@ -103,7 +104,7 @@
                 ((eq? method 'add) (apply add-stack args))
                 ((eq? method 'print) (stack-print))
                 ((eq? method 'length) (stack-length))
-                (else (throw 'value-error "Unknown method: " method))))
+                (else (assertion-violation make-stack "Unknown method" method))))
         dispatch)))
 
   (define (stack-length s) (s 'length))
@@ -135,14 +136,18 @@
   ;; (string-split "this is, a, test" ",") ->
   ;; $1 = ("this is" "a" "test")
   (define (string-split str by)
-    (let ([ls list->string]
-          [sl string->list])
-      (define (splitter s b tmp)
-        (cond [(null? s) (list (ls (reverse tmp)))]
-              [(null? b) (cons (ls (reverse tmp)) (splitter (cdr s) (sl by) (list)))]
-              [(char=? (car b) (car s)) (splitter (car s) (cdr b) tmp)]
-              [else (splitter (cdr s) b (cons (cdr s) tmp))]))
-      (splitter (sl str) (sl by) (list))))
+    ;; split a string by sliding a window of length (string-length by)
+    ;; over the str
+    (let ([results (list)]              ; start with an empty list we add to
+          [window-size (string-length by)]) 
+     (define (splitter str pos)
+       (cond [(> (+ pos window-size) (string-length str)) (reverse (cons str results))]
+             [(string=? (substring str pos (+ pos window-size)) by)
+              (begin
+                (set! results (cons (substring str 0 pos) results))
+                (splitter (substring str (+ pos window-size)) 0))]
+             [else (splitter str (+ 1 pos))]))
+     (splitter str 0)))
 
   (define (read-file filepath)
     (with-input-from-file filepath
@@ -156,8 +161,8 @@
   (define (read-stack-file filepath)
     (let* ([content   (string-split (read-file filepath) "\n\n")]
            [header    (car content)]
-           [movements (cdr content)])
-      (string-split movements "\n")))
+           [movements (filter (lambda (mv) (not (string=? "" mv))) (string-split (cadr content) "\n"))])
+      header))
 
   (define run #f)
 

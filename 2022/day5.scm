@@ -124,6 +124,18 @@
                   (stack-add (get-stack to) (stack-pop (get-stack from)))
                   (do-move (- num 1) from to)))))
 
+  ;; part 2 do-move
+
+  (define (do-move num from to)
+    (let loop ([n-to-lift num]
+               [els (list)])
+      (cond [(<= n-to-lift 0)
+             (let loop2 ([els-left els])
+               (cond [(null? els-left) #t]
+                     [else (begin (stack-add (get-stack to) (car els-left))
+                                  (loop2 (cdr els-left)))]))]
+            [else (loop (- n-to-lift 1) (cons (stack-pop (get-stack from)) els))])))
+
   (define-syntax move
     (syntax-rules ()
       [(_ el1 from el2 to el3)

@@ -86,7 +86,8 @@
 (library (aoc day-five (1))
   (export run)
   (import (rnrs (6))
-          (rnrs exceptions))
+          (rnrs exceptions)
+          (ice-9 eval-string))
 
   (define make-stack
     (lambda args
@@ -115,7 +116,7 @@
   (define stacks (list))
 
   (define (get-stack idx)
-    (list-ref idx stacks))
+    (list-ref stacks (- idx 1)))
   
   (define (do-move num from to)
     (cond ((<= num 0) #t)
@@ -195,7 +196,7 @@
                          [else (loop2 (cons (list-ref (list-ref header i) j) stack) (+ i 1))]))]))))
 
     (define (fill-stack s items)
-      (let loop ([items (reverse (filter string-full? items))])
+      (let loop ([items (filter string-full? items)])
         (cond [(null? items) s]
               [else (begin (stack-add s (car items))
                            (loop (cdr items)))])))
@@ -213,6 +214,19 @@
     
     (let* ([content   (string-split (read-file filepath) "\n\n")]
            [header    (parse-header (string-split (car content) "\n"))]
-           [movements (filter (lambda (mv) (not (string=? "" mv))) (string-split (cadr content) "\n"))])
+           [movements (map (lambda (s) (string-append "(" s ")")) ;; make into scheme command strings
+                           (filter string-full? (string-split (cadr content) "\n")))])
       (values header movements)))
-)
+
+  (define (run filepath)
+    (define (runner)
+     (let-values ([(header movements)  (read-stack-file filepath)])
+       (set! stacks header)
+       (let loop ([moves movements])
+         (cond [(null? moves) stacks]
+               [else (begin
+                       (eval-string (car moves))
+                       (loop (cdr moves)))]))))
+
+    (let ([stacks (runner)])
+      (map stack-pop stacks))))

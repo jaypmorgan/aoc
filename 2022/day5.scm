@@ -149,22 +149,70 @@
              [else (splitter str (+ 1 pos))]))
      (splitter str 0)))
 
-  (define (read-file filepath)
-    (with-input-from-file filepath
-      (lambda ()
-        (let loop ([contents (list)])
-          (let ([content (read-char (current-input-port))])
-            (if (eof-object? content)
-                (list->string (reverse contents))
-                (loop (cons content contents))))))))
+  (define (but-last lst)
+    (reverse (cdr (reverse lst))))
+
+  (define (string-empty? str)
+    (or (string=? str "")
+        (string=? str " ")))
+
+  (define (string-full? str)
+    (not (string-empty? str)))
 
   (define (read-stack-file filepath)
+    (define (read-file filepath)
+      (with-input-from-file filepath
+        (lambda ()
+          (let loop ([contents (list)])
+            (let ([content (read-char (current-input-port))])
+              (if (eof-object? content)
+                  (list->string (reverse contents))
+                  (loop (cons content contents))))))))
+    
+    (define (get-cols header)
+      (let loop ([cols (list)]
+                 [head header])
+        (cond [(null? head) (reverse cols)]
+              [else (let loop2 ([s (car head)]
+                                [parts (list)])
+                      (cond [(< (string-length s) 4) (loop (cons (reverse (cons (substring s 1 2) parts)) cols) (cdr head))]
+                            [else (loop2 (substring s 4) (cons (substring s 1 2) parts))]))])))
+
+    (define (make-stacks n)
+      ;; make N empty stacks
+      (cond [(<= n 0) (list)]
+            [else (cons (make-stack) (make-stacks (- n 1)))]))
+
+    (define (transpose-header header)
+      (let ([header (reverse header)] ;; make bottom first
+            [height (length header)]
+            [width  (length (car header))])
+        (let loop ([parts (list)] [j 0])
+          (cond [(= j width) (reverse parts)]
+                [else
+                 (let loop2 ([stack (list)] [i 0])
+                   (cond [(= i height) (loop (cons (reverse stack) parts) (+ j 1))]
+                         [else (loop2 (cons (list-ref (list-ref header i) j) stack) (+ i 1))]))]))))
+
+    (define (fill-stack s items)
+      (let loop ([items (reverse (filter string-full? items))])
+        (cond [(null? items) s]
+              [else (begin (stack-add s (car items))
+                           (loop (cdr items)))])))
+
+    (define (fill-stacks ss items)
+      (cond [(null? items) #t]
+            [else (begin (fill-stack (car ss) (car items))
+                         (fill-stacks (cdr ss) (cdr items)))]))
+
+    (define (parse-header header)
+      (let* ((header (transpose-header (but-last (get-cols header))))
+             (stacks (make-stacks (length header))))
+        (fill-stacks stacks header)
+        stacks))
+    
     (let* ([content   (string-split (read-file filepath) "\n\n")]
-           [header    (car content)]
+           [header    (parse-header (string-split (car content) "\n"))]
            [movements (filter (lambda (mv) (not (string=? "" mv))) (string-split (cadr content) "\n"))])
-      header))
-
-  (define run #f)
-
-
-  )
+      (values header movements)))
+)

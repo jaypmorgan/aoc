@@ -115,6 +115,8 @@
 
 (use-modules (ice-9 rdelim))
 
+(load "2022/lib.scm")
+
 (define (dir-make name files) `(,name ,files))
 (define dir-name car)
 (define dir-files cadr)
@@ -194,12 +196,28 @@
 
 (define system-files (make-system))
 
-(define (repl)
-  (display "> ")
-  (let* ((cmd (read-line (current-input-port)))
-         (args (cdr (string-split cmd #\space))))
-    (display args)
-    (newline)
-    (display (system-files (string->symbol cmd) args))
-    (newline)
-    (repl)))
+
+(define test-file "2022/data/day7.test.txt")
+
+;; does the string start with a predicate
+;; example
+;; (string-starts-with? "this is a string", #\t) => #t
+(define (string-starts-with? str char-pred)
+  (char=? (string-ref str 0) char-pred))
+
+;; is the terminal output line a command?
+;; example:
+;; $ ls => #t
+;; dir a => #f
+(define (cmd? str)
+  (string-starts-with? str #\$))
+
+(define (term-dir? str)
+  (string= "dir" (substring str 0 3)))
+
+(define (term-file? str)
+  (not (term-file? str)))
+
+(define (read-terminal-file filepath)
+  (string-split (read-file filepath) #\newline))
+

@@ -58,3 +58,14 @@
 	  ((member (car lst1) lst2) (cons (car lst1) (f (cdr lst1) lst2)))
 	  (else (f (cdr lst1) lst2))))
   (f lst1 lst2))
+
+
+(define (but-last lst)
+  (reverse (cdr (reverse lst))))
+
+(define (string-empty? str)
+  (or (string=? str "")
+      (string=? str " ")))
+
+(define (string-full? str)
+  (not (string-empty? str)))

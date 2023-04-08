@@ -173,6 +173,7 @@
     ;; the pwd list.
     (define (cd name)
       (cond ((string= ".." name) (set! wd (but-last wd)))
+            ((string= "/"  name) (set! wd (list)))
             (else (set! wd (add-to-end wd name)))))
 
     (define (add-file dir file)
@@ -216,8 +217,39 @@
   (string= "dir" (substring str 0 3)))
 
 (define (term-file? str)
-  (not (term-file? str)))
+  (not (term-dir? str)))
+
+(define (term-type str)
+  (cond ((cmd? str) 'cmd)
+        ((term-dir? str) 'dir)
+        ((term-file? str) 'file)))
+
+(define (term-format str)
+  (let ((type (term-type str)))
+
+    (define (format-cmd s)
+      (let ((data (cdr (string-split s #\space))))
+        `(,(string->symbol (car data)) ,@(cdr data))))
+
+    (define (format-dir s) (string-split s #\space))
+
+    (define (format-file s)
+      (let ((data (string-split s #\space)))
+        (list (string->number (first data)) (second data))))
+    
+    (cond ((eq? type 'cmd) (format-cmd str))
+          ((eq? type 'dir) (format-dir str))
+          ((eq? type 'file) (format-file str)))))
 
 (define (read-terminal-file filepath)
-  (string-split (read-file filepath) #\newline))
+  (filter string-full? (string-split (read-file filepath) #\newline)))
 
+(define (execute-terminal-file filepath)
+  (define (exe output)
+    (let ((type      (term-type output))
+          (formatted (term-format output)))
+      (cond ((and (eq? type 'cmd) (not (eq? (car formatted) 'ls)))
+             (system-files (car formatted) (cadr formatted)))
+            ((eq? type 'dir) (system-files 'mkdir (second formatted)))
+            ((eq? type 'file) (system-files 'touch (second formatted) (first formatted))))))
+  (map exe (read-terminal-file filepath)))
